@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Debería Ser Feriado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --amber: #E8A045;
+  --coral: #E06B45;
+  --rose: #D4607A;
+  --blush: #F2C4A0;
+  --gold: #F5C842;
+  --cream: #FDF5EC;
+  --dusk: #8B4A6B;
+  --sky: #F7A97C;
+  --deep: #2C1A2E;
+  --sand: #F0DEC8;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--deep);
+  color: var(--cream);
+  font-family: 'Cormorant Garamond', serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── AUDIO LOCAL ── */
+#audio-feriado { display: none; }
+
+/* ── BOTÓN FLOTANTE DE MÚSICA ── */
+#music-fab {
+  position: fixed;
+  bottom: clamp(1rem, 4vw, 1.5rem);
+  right: clamp(1rem, 4vw, 1.5rem);
+  z-index: 100;
+  width: clamp(44px, 12vw, 56px);
+  height: clamp(44px, 12vw, 56px);
+  border-radius: 50%;
+  background: rgba(245,200,66,0.15);
+  border: 1px solid rgba(245,200,66,0.4);
+  color: var(--gold);
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+#music-fab.visible { opacity: 1; pointer-events: all; }
+#music-fab:hover { background: rgba(245,200,66,0.25); transform: scale(1.08); }
+#music-fab.playing { border-color: var(--gold); background: rgba(245,200,66,0.22); }
+
+/* ── BACK BUTTON ── */
+.back-btn {
+  position: fixed;
+  top: clamp(0.75rem, 2.5vh, 1rem);
+  left: clamp(0.75rem, 3vw, 1.2rem);
+  z-index: 100;
+  display: flex; align-items: center; gap: 0.4rem;
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+  color: rgba(242,196,160,0.4);
+  text-decoration: none;
+  transition: color 0.3s;
+  padding: 0.5rem;
+}
+.back-btn:hover { color: rgba(242,196,160,0.8); }
+
+/* ── CANVAS ── */
+#particles-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ══════════════════════════════════
+   HERO
+══════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 2;
+  padding: clamp(4rem, 10vh, 6rem) 1.5rem clamp(5rem, 12vh, 7rem);
+}
+
+.sunset-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 110%, #E06B45 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 70% 90%, #D4607A 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 30% 95%, #E8A045 0%, transparent 50%),
+    radial-gradient(ellipse 100% 80% at 50% 100%, #8B4A6B 0%, transparent 70%),
+    linear-gradient(180deg, #1A0A20 0%, #2C1020 30%, #5C2040 60%, #8B3050 80%, #C05060 100%);
+  z-index: 0;
+}
+
+.ocean-layer {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
+  background: linear-gradient(180deg, transparent 0%, rgba(10,30,60,0.7) 40%, rgba(5,15,40,0.95) 100%);
+  z-index: 1;
+}
+
+.ocean-glow {
+  position: absolute; bottom: 30%; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--amber), var(--sky), transparent);
+  filter: blur(3px); opacity: 0.8; z-index: 2;
+}
+
+.stars { position: absolute; inset: 0; z-index: 1; }
+.star {
+  position: absolute; width: 2px; height: 2px;
+  background: white; border-radius: 50%;
+  animation: twinkle var(--dur, 3s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+.hero-content {
+  position: relative; z-index: 5;
+  text-align: center;
+  padding: 0 0.5rem;
+  max-width: min(820px, 95vw);
+  width: 100%;
+}
+
+.hero-eyebrow {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: clamp(0.72rem, 2.2vw, 1rem);
+  color: var(--blush); letter-spacing: 0.25em; text-transform: uppercase;
+  opacity: 0; transform: translateY(20px);
+  animation: fadeUp 1s ease forwards 0.5s;
+}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 7.5vw, 5.5rem);
+  font-weight: 400; line-height: 1.15; color: var(--cream);
+  margin: 1rem 0 1.2rem;
+  opacity: 0; animation: fadeUp 1.2s ease forwards 0.9s;
+}
+.hero-title em { font-style: italic; color: var(--gold); display: block; }
+
+.hero-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1rem, 2.8vw, 1.45rem);
+  font-weight: 300; color: var(--blush); line-height: 1.7;
+  opacity: 0; animation: fadeUp 1s ease forwards 1.4s;
+}
+
+.scroll-hint {
+  position: absolute; bottom: clamp(1rem, 3vh, 2rem); left: 50%;
+  transform: translateX(-50%); z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  opacity: 0; animation: fadeUp 1s ease forwards 2s;
+}
+.scroll-hint span {
+  font-size: 0.7rem; letter-spacing: 0.25em;
+  color: rgba(242,196,160,0.5); text-transform: uppercase;
+}
+.scroll-arrow {
+  width: 16px; height: 16px;
+  border-right: 1px solid rgba(242,196,160,0.4);
+  border-bottom: 1px solid rgba(242,196,160,0.4);
+  transform: rotate(45deg);
+  animation: bounce 2s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); }
+  50% { transform: rotate(45deg) translateY(5px); }
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════
+   PLAYER
+══════════════════════════════════ */
+.player-section {
+  position: relative; z-index: 2;
+  display: flex; justify-content: center;
+  padding: clamp(3rem, 8vw, 5rem) clamp(1rem, 5vw, 2rem);
+  background: linear-gradient(180deg, rgba(10,5,15,0.95) 0%, rgba(20,8,25,1) 100%);
+}
+
+.player-wrap {
+  width: 100%; max-width: min(600px, 95vw);
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.player-wrap.visible { opacity: 1; transform: translateY(0); }
+
+.player-label {
+  text-align: center; font-family: 'Lora', serif; font-style: italic;
+  color: var(--blush); font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+  letter-spacing: 0.2em; margin-bottom: 1.2rem; opacity: 0.7;
+}
+.player-frame { border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+/* ══════════════════════════════════
+   MENSAJES
+══════════════════════════════════ */
+.messages-section {
+  position: relative; z-index: 2;
+  background: linear-gradient(180deg, #14081A 0%, #1A0C22 100%);
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1rem, 5vw, 2rem) clamp(3rem, 8vw, 6rem);
+}
+
+.section-divider {
+  display: flex; align-items: center; gap: 1.2rem;
+  max-width: min(600px, 90vw); margin: 0 auto clamp(2rem, 6vw, 4rem);
+  opacity: 0.3;
+}
+.section-divider::before, .section-divider::after {
+  content: ''; flex: 1; height: 1px;
+}
+.section-divider::before { background: linear-gradient(90deg, transparent, var(--amber)); }
+.section-divider::after { background: linear-gradient(90deg, var(--amber), transparent); }
+.section-divider svg { color: var(--amber); flex-shrink: 0; }
+
+.message-card {
+  max-width: min(640px, 92vw); margin: 0 auto clamp(2.5rem, 6vw, 4rem);
+  opacity: 0; transform: translateY(40px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.message-card.visible { opacity: 1; transform: translateY(0); }
+.message-card:nth-child(even) { text-align: right; }
+
+.card-tag {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: clamp(0.72rem, 2vw, 0.8rem);
+  letter-spacing: 0.25em; color: var(--amber);
+  text-transform: uppercase; margin-bottom: 0.6rem; display: block;
+}
+.card-text {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 400; line-height: 1.5; color: var(--cream);
+}
+.card-text em { font-style: italic; color: var(--gold); }
+.card-sub {
+  margin-top: 0.6rem; font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem); font-weight: 300;
+  color: rgba(242,196,160,0.6); line-height: 1.7;
+}
+
+/* ══════════════════════════════════
+   TYPEWRITER
+══════════════════════════════════ */
+.typewriter-section {
+  position: relative; z-index: 2;
+  background: linear-gradient(180deg, #1A0C22 0%, #2C1428 100%);
+  padding: clamp(3.5rem, 8vw, 6rem) clamp(1rem, 5vw, 2rem);
+  text-align: center; overflow: hidden;
+}
+.typewriter-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(212,96,122,0.08) 0%, transparent 70%);
+}
+.typewriter-label {
+  font-family: 'Lora', serif; font-style: italic;
+  color: var(--blush); font-size: clamp(0.72rem, 2.5vw, 0.9rem);
+  letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 1.5rem; opacity: 0.6;
+}
+.typewriter-text {
+  font-family: 'Playfair Display', serif; font-style: italic;
+  font-size: clamp(1.3rem, 4.5vw, 2.8rem); color: var(--cream);
+  max-width: min(700px, 92vw); margin: 0 auto; line-height: 1.5;
+  min-height: 3em; position: relative; z-index: 1;
+}
+.cursor {
+  display: inline-block; width: 2px; height: 1em;
+  background: var(--gold); margin-left: 3px;
+  vertical-align: text-bottom; animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ══════════════════════════════════
+   CARTA
+══════════════════════════════════ */
+.letter-section {
+  position: relative; z-index: 2;
+  background: linear-gradient(180deg, #2C1428 0%, #1A0A1E 50%, #0D0512 100%);
+  padding: clamp(3.5rem, 8vw, 6rem) clamp(1rem, 5vw, 2rem) clamp(4rem, 10vw, 8rem);
+}
+.letter-wrap { max-width: min(680px, 92vw); margin: 0 auto; }
+
+.letter-top {
+  text-align: center; margin-bottom: clamp(1.5rem, 4vw, 3rem);
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.letter-top.visible { opacity: 1; transform: translateY(0); }
+
+.letter-icon {
+  font-size: clamp(1.8rem, 6vw, 2.5rem); display: block;
+  margin-bottom: 0.8rem; animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.letter-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.5rem, 5vw, 3rem); font-weight: 400; color: var(--cream);
+  margin-bottom: 0.4rem;
+}
+.letter-sub {
+  font-family: 'Lora', serif; font-style: italic;
+  color: var(--amber); font-size: clamp(0.85rem, 2.5vw, 1rem); opacity: 0.7;
+}
+
+.letter-body {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(245,200,66,0.1);
+  border-radius: clamp(12px, 3vw, 20px);
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.2rem, 5vw, 3.5rem);
+  backdrop-filter: blur(10px);
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 1s ease 0.2s, transform 1s ease 0.2s;
+}
+.letter-body.visible { opacity: 1; transform: translateY(0); }
+
+.letter-p {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1rem, 2.8vw, 1.2rem); font-weight: 300;
+  line-height: 1.9; color: rgba(253,245,236,0.85); margin-bottom: 1.3rem;
+}
+.letter-p:last-of-type { margin-bottom: 0; }
+.letter-p strong { font-weight: 400; color: var(--cream); }
+.letter-p em { font-style: italic; color: var(--gold); }
+
+.letter-signature {
+  text-align: right; margin-top: 2rem; padding-top: 1.2rem;
+  border-top: 1px solid rgba(245,200,66,0.15);
+  font-family: 'Playfair Display', serif; font-style: italic;
+  color: var(--blush); font-size: clamp(1rem, 3vw, 1.1rem);
+}
+
+/* ── AUDIO TRIGGER VISUAL ── */
+.audio-trigger {
+  position: relative; z-index: 2;
+  text-align: center;
+  padding: clamp(2rem, 5vw, 3rem) clamp(1rem, 5vw, 2rem);
+  background: linear-gradient(180deg, #0D0512 0%, #0A0310 100%);
+  display: none;
+}
+.audio-trigger.show { display: block; }
+
+.audio-note {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  color: rgba(245,200,66,0.5); letter-spacing: 0.15em;
+  animation: fadeIn 2s ease forwards;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ══════════════════════════════════
+   FOOTER
+══════════════════════════════════ */
+.footer {
+  position: relative; z-index: 2; text-align: center;
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1rem, 5vw, 2rem);
+  background: #0D0512;
+}
+.footer-quote {
+  font-family: 'Playfair Display', serif; font-style: italic;
+  font-size: clamp(0.9rem, 2.5vw, 1.35rem); color: rgba(242,196,160,0.45);
+  max-width: min(500px, 90vw); margin: 0 auto 0.8rem; line-height: 1.7;
+}
+.footer-song {
+  font-family: 'Lora', serif; font-size: clamp(0.72rem, 2vw, 0.82rem);
+  letter-spacing: 0.15em; color: rgba(242,196,160,0.25);
+}
+.footer-back {
+  margin-top: 2rem;
+}
+.footer-back a {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: clamp(0.75rem, 2.2vw, 0.85rem);
+  color: rgba(242,196,160,0.25); text-decoration: none;
+  letter-spacing: 0.1em; transition: color 0.3s;
+}
+.footer-back a:hover { color: rgba(242,196,160,0.55); }
+</style>
+</head>
+<body>
+
+<!-- Audio local -->
+<audio id="audio-feriado" src="feriado.mp3" preload="auto" loop></audio>
+
+<!-- Botón flotante de música -->
+<button id="music-fab" title="Reproducir / Pausar" aria-label="Música">♪</button>
+
+<!-- Botón volver -->
+<a href="index.html" class="back-btn">← volver</a>
+
+<canvas id="particles-canvas"></canvas>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="sunset-bg"></div>
+  <div class="stars" id="stars"></div>
+  <div class="ocean-layer"></div>
+  <div class="ocean-glow"></div>
+
+  <div class="hero-content">
+    <p class="hero-eyebrow"> Debería Ser Feriado</p>
+    <h1 class="hero-title">
+     Hay momentos del año que<br>deberían ser feriado…
+      <em>este mes es uno de ellos.</em>
+    </h1>
+    <p class="hero-subtitle">
+      Un día contigo era suficiente para que todo lo demás<br>dejara de importar por un momento.
+    </p>
+  </div>
+
+  <div class="scroll-hint">
+    <span></span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+
+
+<!-- MENSAJES -->
+<section class="messages-section">
+  <div class="section-divider">
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
+      <path d="M7 0l1.5 4.5H13l-3.75 2.7 1.43 4.5L7 9.1l-3.68 2.6 1.43-4.5L1 4.5h4.5z"/>
+    </svg>
+  </div>
+
+  <div class="message-card">
+    <span class="card-tag">Lo que eras</span>
+    <p class="card-text">Eras ese tipo de presencia que <em>cambia el color</em> de los días.</p>
+    <p class="card-sub">No porque todo fuera perfecto, sino porque contigo, hasta lo ordinario se volvía especial.</p>
+  </div>
+
+  <div class="message-card">
+    <span class="card-tag">Lo que sentía</span>
+    <p class="card-text">Cuando estabas cerca, el tiempo<br><em>decidía moverse diferente.</em></p>
+    <p class="card-sub">Más rápido cuando quería que durara, más despacio cuando no me daba cuenta.</p>
+  </div>
+
+  <div class="message-card">
+    <span class="card-tag">Lo que aprendí</span>
+    <p class="card-text">Que hay personas que <em>te enseñan a querer</em><br>con más gentileza.</p>
+    <p class="card-sub">Y tú fuiste una de las que más me enseñó sobre eso.</p>
+  </div>
+
+  <div class="message-card">
+    <span class="card-tag">Lo que queda</span>
+    <p class="card-text">No me arrepiento de nada.<br><em>Solo agradezco.</em></p>
+    <p class="card-sub">Cada memoria, cada risa, cada momento incómodo y cada silencio cómodo.</p>
+  </div>
+</section>
+
+<!-- TYPEWRITER -->
+<section class="typewriter-section">
+  <div class="typewriter-bg"></div>
+  <p class="typewriter-label">✦ &nbsp; Una verdad a la vez &nbsp; ✦</p>
+  <div class="typewriter-text" id="typewriter"><span class="cursor"></span></div>
+</section>
+
+<!-- CARTA -->
+<section class="letter-section">
+  <div class="letter-wrap">
+    <div class="letter-top">
+      <span class="letter-icon">🌅</span>
+      <h2 class="letter-title">Una carta para ti</h2>
+      <p class="letter-sub">escrita desde el lugar más honesto que conozco</p>
+    </div>
+
+    <div class="letter-body">
+      <p class="letter-p">
+        Hay cosas que uno no sabe cómo decir mientras suceden. Las siente, las guarda, las repite en silencio. Esta es una de ellas:
+         <strong>fuiste una de las personas más importantes que han pasado por mi vida.</strong>
+      </p>
+      <p class="letter-p">
+        No te escribo esto para que vuelvas, ni para hacerte sentir comprometida a nada. Te escribo porque me siento bien con lo que
+         siento hacia ti, me recuerda que lo que vivimos fue real, y que eso merece ser dicho en voz alta aunque sea una sola vez.
+      </p>
+      <p class="letter-p">
+        <em>Debería ser feriado el día que te conocí.</em> Pero también debería ser feriado el día en que te hicieron. Este mes es
+         tu mes, y aunque no pueda celebrarlo contigo, quiero que sepas que lo celebro por ti. Que cada vez que llegue este mes,
+          voy a pensar en ti con una sonrisa. Y si podemos algún día celebrarlo juntos, sería genial.
+      </p>
+      <p class="letter-p">
+        Quiero que sepas que te recuerdo bien. No con tristeza, sino con ese tipo de calidez que se siente cuando piensas en algo 
+        que fue verdaderamente tuyo. <strong>Fuiste amada. Lo sigues siendo, a mi manera.</strong>
+      </p>
+      <p class="letter-p">
+        Que nos vaya increíble. Que el mundo nos dé todo lo que merecemos, que es mucho. Y que de vez en cuando, cuando escuchemos esta 
+        canción, sepas que en algún lugar del mundo hay alguien que sonríe al pensar en ti. mundo por favor no me la quites
+      </p>
+      <div class="letter-signature">
+        Con cariño, siempre. 🌸
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer" id="page-footer">
+  <p class="footer-quote">"Que lindo es estar aquí, que rico es saber que alguien como tú me llegó a amar…"</p>
+  <p class="footer-song">Este mes debería ser feriado, solo porque fue en un día de estos en los que te hicieron.</p>
+  <div class="footer-back">
+    <a href="index.html">← volver al inicio</a>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════
+//  AUDIO LOCAL
+// ═══════════════════════════════════════
+const audio = document.getElementById('audio-feriado');
+const fab = document.getElementById('music-fab');
+let audioUnlocked = false;
+let audioPlaying = false;
+let autoplayTriggered = false;
+
+function unlockAndPlay() {
+  audioUnlocked = true;
+  audio.play().then(() => {
+    audioPlaying = true;
+    fab.textContent = '❚❚';
+    fab.classList.add('playing');
+  }).catch(() => {});
+}
+
+function toggleAudio() {
+  if (!audioPlaying) {
+    audio.play().then(() => {
+      audioPlaying = true;
+      fab.textContent = '❚❚';
+      fab.classList.add('playing');
+    }).catch(() => {});
+  } else {
+    audio.pause();
+    audioPlaying = false;
+    fab.textContent = '♪';
+    fab.classList.remove('playing');
+  }
+}
+
+fab.addEventListener('click', toggleAudio);
+
+// Desbloquear audio en primer toque/click
+document.addEventListener('touchstart', () => { if (!audioUnlocked) { audioUnlocked = true; } }, { once: true, passive: true });
+document.addEventListener('click', () => { if (!audioUnlocked) audioUnlocked = true; }, { once: true });
+
+// Mostrar FAB al hacer scroll
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 100) fab.classList.add('visible');
+  else fab.classList.remove('visible');
+});
+
+// ═══════════════════════════════════════
+//  AUTOPLAY AL LLEGAR AL FOOTER
+// ═══════════════════════════════════════
+const footerEl = document.getElementById('page-footer');
+
+const footerObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !autoplayTriggered) {
+      autoplayTriggered = true;
+      if (!audioPlaying) {
+        audio.play().then(() => {
+          audioPlaying = true;
+          fab.textContent = '❚❚';
+          fab.classList.add('playing');
+          fab.classList.add('visible');
+        }).catch(() => {
+          // Si el navegador bloquea, mostramos el FAB para que el usuario lo active
+          fab.classList.add('visible');
+        });
+      }
+    }
+  });
+}, { threshold: 0.3 });
+
+footerObserver.observe(footerEl);
+
+// ═══════════════════════════════════════
+//  ESTRELLAS
+// ═══════════════════════════════════════
+const starsContainer = document.getElementById('stars');
+const starCount = window.innerWidth < 480 ? 45 : 80;
+for (let i = 0; i < starCount; i++) {
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.cssText = `
+    left: ${Math.random() * 100}%;
+    top: ${Math.random() * 65}%;
+    --dur: ${2 + Math.random() * 4}s;
+    --delay: ${Math.random() * 4}s;
+    opacity: ${0.2 + Math.random() * 0.8};
+    width: ${1 + Math.random() * 2}px;
+    height: ${1 + Math.random() * 2}px;
+  `;
+  starsContainer.appendChild(star);
+}
+
+// ═══════════════════════════════════════
+//  PARTÍCULAS
+// ═══════════════════════════════════════
+const canvas = document.getElementById('particles-canvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const PARTICLE_COUNT = window.innerWidth < 480 ? 20 : 38;
+const particles = [];
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(initial = false) {
+    this.x = Math.random() * canvas.width;
+    this.y = initial ? Math.random() * canvas.height : canvas.height + 20;
+    this.size = 4 + Math.random() * 9;
+    this.speedY = -(0.2 + Math.random() * 0.5);
+    this.speedX = (Math.random() - 0.5) * 0.4;
+    this.opacity = 0;
+    this.maxOpacity = 0.1 + Math.random() * 0.18;
+    this.fadeIn = true;
+    this.type = Math.random() > 0.5 ? 'heart' : 'dot';
+    this.hue = Math.random() > 0.5 ? 'rgba(245,200,66,' : Math.random() > 0.5 ? 'rgba(212,96,122,' : 'rgba(242,196,160,';
+  }
+  update() {
+    this.y += this.speedY;
+    this.x += this.speedX + Math.sin(this.y * 0.02) * 0.3;
+    if (this.fadeIn) { this.opacity += 0.005; if (this.opacity >= this.maxOpacity) this.fadeIn = false; }
+    else this.opacity -= 0.002;
+    if (this.y < -20 || this.opacity <= 0) this.reset();
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.opacity);
+    if (this.type === 'heart') {
+      ctx.fillStyle = this.hue + this.opacity + ')';
+      const s = this.size * 0.8;
+      ctx.translate(this.x, this.y);
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.3);
+      ctx.bezierCurveTo(s * 0.5, -s * 0.9, s, -s * 0.1, 0, s * 0.6);
+      ctx.bezierCurveTo(-s, -s * 0.1, -s * 0.5, -s * 0.9, 0, -s * 0.3);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = this.hue + this.opacity + ')';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+(function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+})();
+
+// ═══════════════════════════════════════
+//  SCROLL REVEAL
+// ═══════════════════════════════════════
+const revealEls = document.querySelectorAll('.message-card, .player-wrap, .letter-top, .letter-body');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+revealEls.forEach(el => observer.observe(el));
+
+// ═══════════════════════════════════════
+//  TYPEWRITER
+// ═══════════════════════════════════════
+const phrases = [
+  "Fuiste uno de esos lugares a los que siempre quieres volver.",
+  "Contigo aprendí que el amor también puede ser calma.",
+  "Hay recuerdos tuyos que aún me hacen sonreír sin razón.",
+  "Gracias por haber sido tan genuinamente tú.",
+  "No todos los finales son tristes. El nuestro puede ser de los mas bonitos."
+];
+
+let phraseIndex = 0, charIndex = 0, isDeleting = false;
+const typeEl = document.getElementById('typewriter');
+
+function typeWrite() {
+  const current = phrases[phraseIndex];
+  if (!isDeleting) {
+    charIndex++;
+    typeEl.innerHTML = current.slice(0, charIndex) + '<span class="cursor"></span>';
+    if (charIndex === current.length) { isDeleting = true; setTimeout(typeWrite, 2800); return; }
+    setTimeout(typeWrite, 55);
+  } else {
+    charIndex--;
+    typeEl.innerHTML = current.slice(0, charIndex) + '<span class="cursor"></span>';
+    if (charIndex === 0) { isDeleting = false; phraseIndex = (phraseIndex + 1) % phrases.length; setTimeout(typeWrite, 500); return; }
+    setTimeout(typeWrite, 28);
+  }
+}
+
+let typeStarted = false;
+const typeObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && !typeStarted) { typeStarted = true; setTimeout(typeWrite, 600); }
+  });
+}, { threshold: 0.3 });
+typeObserver.observe(document.querySelector('.typewriter-section'));
+
+// ═══════════════════════════════════════
+//  PARALLAX (solo desktop)
+// ═══════════════════════════════════════
+const isMobile = window.matchMedia('(hover: none)').matches;
+if (!isMobile) {
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    const sunsetBg = document.querySelector('.sunset-bg');
+    if (sunsetBg) sunsetBg.style.transform = `translateY(${y * 0.35}px)`;
+    const heroContent = document.querySelector('.hero-content');
+    if (heroContent) {
+      heroContent.style.transform = `translateY(${y * 0.18}px)`;
+      heroContent.style.opacity = Math.max(0, 1 - y / 600);
+    }
+  }, { passive: true });
+}
+</script>
+</body>
+</html>
